@@ -173,7 +173,7 @@ HTML = """
   <h1>🧮 Two-Sum CSV Solver</h1>
 
   <form method="post" enctype="multipart/form-data">
-    <div class="upload-area" onclick="this.querySelector('input').click()">
+    <div class="upload-area">
       <input type="file" name="csvfile" required>
       <div class="icon">📂</div>
       <p>Drop a CSV or click to browse</p>
