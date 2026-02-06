@@ -1,1 +1,1 @@
-from .two_sum import bp
+from .index import bp

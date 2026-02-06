@@ -1,3 +1,67 @@
+import csv
+import io
+import re
+from flask import Blueprint, request, render_template_string
+from .two_sum import two_sum
+
+bp = Blueprint("two_sum", __name__)
+
+# ── CSV helpers ──────────────────────────────────────────────
+
+PRICE_KEYWORDS = ["price", "cost", "amount", "value", "usd"]
+
+
+def clean_number(value):
+    return float(re.sub(r"[^\d.-]", "", value))
+
+
+def detect_price_column(rows):
+    scores = {}
+    headers = rows[0].keys()
+
+    for header in headers:
+        score = 0
+        for row in rows:
+            try:
+                clean_number(row[header])
+                score += 1
+            except:
+                pass
+
+        if any(k in header.lower() for k in PRICE_KEYWORDS):
+            score += 10
+
+        scores[header] = score
+
+    return max(scores, key=scores.get)
+
+
+def parse_csv(file):
+    stream = io.StringIO(file.stream.read().decode("utf-8"))
+    reader = csv.DictReader(stream)
+    rows = list(reader)
+
+    if not rows:
+        return None, None, "CSV is empty"
+
+    price_col = detect_price_column(rows)
+
+    prices = []
+    items = []
+
+    for row in rows:
+        price = clean_number(row[price_col])
+        prices.append(price)
+        items.append({
+            "name": row.get("Name") or row.get("Item") or "Row " + str(len(items)),
+            "price": price
+        })
+
+    return prices, items, price_col
+
+
+# ── Template ─────────────────────────────────────────────────
+
 HTML = """
 <!doctype html>
 <html lang="en">
@@ -170,7 +234,7 @@ HTML = """
 <body>
 
 <div class="card">
-  <h1>🧮 Two-Sum CSV Solver</h1>
+  <h1>Two-Sum CSV Solver</h1>
 
   <form method="post" enctype="multipart/form-data">
     <div class="upload-area">
@@ -182,16 +246,16 @@ HTML = """
     <label class="field-label" for="target">Target Value</label>
     <input type="number" step="any" name="target" id="target" placeholder="e.g. 914.00" required>
 
-    <button class="btn-solve" type="submit">✨ Solve</button>
+    <button class="btn-solve" type="submit">Solve</button>
   </form>
 
   {% if error %}
-  <div class="error-banner">⚠️ {{ error }}</div>
+  <div class="error-banner">{{ error }}</div>
   {% endif %}
 
   {% if result %}
   <div class="result-section">
-    <h2>🎉 Match Found!</h2>
+    <h2>Match Found!</h2>
     <span class="col-tag">Detected column: {{ column }}</span>
 
     <div class="match-row">
@@ -221,3 +285,37 @@ HTML = """
 </body>
 </html>
 """
+
+
+# ── Route ────────────────────────────────────────────────────
+
+@bp.route("/two-sum", methods=["GET", "POST"])
+def index():
+    if request.method == "POST":
+        try:
+            file = request.files["csvfile"]
+            target = float(request.form["target"])
+
+            prices, items, price_col = parse_csv(file)
+
+            if prices is None:
+                return render_template_string(HTML, error=price_col)
+
+            match = two_sum(prices, target)
+
+            if not match:
+                return render_template_string(HTML, error="No matching pair found")
+
+            i, j = match
+
+            return render_template_string(
+                HTML,
+                result=[items[i], items[j]],
+                total=round(items[i]["price"] + items[j]["price"], 2),
+                column=price_col
+            )
+
+        except Exception as e:
+            return render_template_string(HTML, error=str(e))
+
+    return render_template_string(HTML)
