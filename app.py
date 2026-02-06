@@ -110,4 +110,5 @@ def landing():
     return render_template_string(LANDING_HTML)
 
 
-app.run(host="0.0.0.0", port=3000)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=3000)
