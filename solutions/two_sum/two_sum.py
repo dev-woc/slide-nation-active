@@ -1,8 +1,8 @@
-from flask import Flask, request, render_template_string
-from template import HTML
-from csv_helpers import parse_csv
+from flask import Blueprint, request, render_template_string
+from .template import HTML
+from .csv_helpers import parse_csv
 
-app = Flask(__name__)
+bp = Blueprint("two_sum", __name__)
 
 
 def two_sum(nums, target):
@@ -15,7 +15,7 @@ def two_sum(nums, target):
     return None
 
 
-@app.route("/", methods=["GET", "POST"])
+@bp.route("/two-sum", methods=["GET", "POST"])
 def index():
     if request.method == "POST":
         try:
@@ -45,6 +45,3 @@ def index():
             return render_template_string(HTML, error=str(e))
 
     return render_template_string(HTML)
-
-
-app.run(host="0.0.0.0", port=3000)
