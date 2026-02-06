@@ -63,9 +63,10 @@ def detect_price_column(rows):
 def two_sum(nums, target):
     seen = {}
     for i, num in enumerate(nums):
-        if target - num in seen:
-            return seen[target - num], i
-        seen[num] = i
+        complement = round(target - num, 2)
+        if complement in seen:
+            return seen[complement], i
+        seen[round(num, 2)] = i
     return None
 
 @app.route("/", methods=["GET", "POST"])
